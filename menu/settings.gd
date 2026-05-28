@@ -14,13 +14,16 @@ enum GIQuality {
 
 const CONFIG_FILE_PATH = "user://settings.ini"
 
-const DEFAULTS = {
+# MetalFX is only supported when using the Metal rendering driver.
+var metalfx_supported: bool = RenderingServer.get_current_rendering_driver_name() == "metal"
+
+var DEFAULTS := {
 	video = {
 		display_mode = Window.MODE_EXCLUSIVE_FULLSCREEN,
 		vsync = DisplayServer.VSYNC_ENABLED,
 		max_fps = 0,
 		resolution_scale = 1.0,
-		scale_filter = Viewport.SCALING_3D_MODE_FSR2,
+		scale_filter = Viewport.SCALING_3D_MODE_METALFX_TEMPORAL if metalfx_supported else Viewport.SCALING_3D_MODE_FSR2,
 	},
 	rendering = {
 		taa = false,
@@ -39,17 +42,17 @@ const DEFAULTS = {
 var config_file := ConfigFile.new()
 
 
-func _ready():
+func _ready() -> void:
 	load_settings()
 
 
-func _input(event):
-	if event.is_action_pressed("toggle_fullscreen"):
+func _input(input_event: InputEvent) -> void:
+	if input_event.is_action_pressed(&"toggle_fullscreen"):
 		get_window().mode = Window.MODE_EXCLUSIVE_FULLSCREEN if (!((get_window().mode == Window.MODE_EXCLUSIVE_FULLSCREEN) or (get_window().mode == Window.MODE_FULLSCREEN))) else Window.MODE_WINDOWED
 		get_viewport().set_input_as_handled()
 
 
-func load_settings():
+func load_settings() -> void:
 	config_file.load(CONFIG_FILE_PATH)
 	# Initialize defaults for values not found in the existing configuration file,
 	# so we don't have to specify them every time we use `ConfigFile.get_value()`.
@@ -59,11 +62,11 @@ func load_settings():
 				config_file.set_value(section, key, DEFAULTS[section][key])
 
 
-func save_settings():
+func save_settings() -> void:
 	config_file.save(CONFIG_FILE_PATH)
 
 
-func apply_graphics_settings(window: Window, environment: Environment, scene_root: Node):
+func apply_graphics_settings(window: Window, environment: Environment, scene_root: Node) -> void:
 	get_window().mode = Settings.config_file.get_value("video", "display_mode")
 	DisplayServer.window_set_vsync_mode(Settings.config_file.get_value("video", "vsync"))
 	Engine.max_fps = Settings.config_file.get_value("video", "max_fps")
